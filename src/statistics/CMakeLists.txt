@@ -1,6 +1,7 @@
 SET(SRCs
 
 	computePCF_2dd
+	computePCF_6dd
 	computeK_2dd
 	computeL_2dd
 	computeMinDist_2dd

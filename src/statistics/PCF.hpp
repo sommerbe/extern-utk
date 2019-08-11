@@ -18,11 +18,11 @@ public:
 	template <uint D, typename T, typename P>
 	bool compute(Pointset<D, T, P> arg_pts, Histogram1dd& arg_pcf, double rmin=0.01, double rmax=0.15, uint nbbins=200, double smoothing=0.001, bool normalized_distance=true)
 	{
-		if(D != 2)
+	/*	if(D != 2)
 		{
 			ERROR("PCF::compute can only be computed in 2D (other dimensions not implemented yet)");
 			return false;
-		}
+		}*/
 		
 		Pointset<D, double, Point<D, double> > pts01;
 		arg_pts.normalizePositions(pts01);
