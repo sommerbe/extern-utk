@@ -87,11 +87,17 @@ public:
 			return false;
 		}
 		
+		if(!isIntegerType<T>() && !isFloatingType<T>())
+		{
+			ERROR("SamplerSobol::generateSamples The samples corrdinates must be of numeric value");
+			return false;
+		}
+		
 		char buffer[1000];
 		infile.getline(buffer,1000,'\n');
 		
 		// L = max number of bits needed 
-		unsigned L = (unsigned)ceil(log((double)N)/log(2.0)); 
+		const unsigned L = ceil(log2(N)); 
 
 		// C[i] = index from the right of the first zero bit of i
 		unsigned *C = new unsigned [N];
@@ -100,15 +106,15 @@ public:
 			C[i] = 1;
 			unsigned value = i;
 			while (value & 1) {
-			value >>= 1;
-			C[i]++;
+				value >>= 1;
+				C[i]++;
 			}
 		}
 		
 		// POINTS[i][j] = the jth component of the ith point
 		//                with i indexed from 0 to N-1 and j indexed from 0 to D-1
-		double **POINTS = new double * [N];
-		for (unsigned i=0;i<=N-1;i++) POINTS[i] = new double [D];
+		unsigned **POINTS = new unsigned * [N];
+		for (unsigned i=0;i<=N-1;i++) POINTS[i] = new unsigned [D];
 		for (unsigned j=0;j<=D-1;j++) POINTS[0][j] = 0; 
 
 		// ----- Compute the first dimension -----
@@ -117,12 +123,13 @@ public:
 		unsigned *V = new unsigned [L+1]; 
 		for (unsigned i=1;i<=L;i++) V[i] = 1 << (32-i); // all m's = 1
 
+		
 		// Evalulate X[0] to X[N-1], scaled by pow(2,32)
 		unsigned *X = new unsigned [N];
 		X[0] = 0;
 		for (unsigned i=1;i<=N-1;i++) {
 			X[i] = X[i-1] ^ V[C[i-1]];
-			POINTS[i][0] = (double)X[i]/pow(2.0,32); // *** the actual points
+			POINTS[i][0] = X[i]; // *** the actual points
 			//        ^ 0 for first dimension
 		}
 		
@@ -144,25 +151,26 @@ public:
 			// Compute direction numbers V[1] to V[L], scaled by pow(2,32)
 			unsigned *V = new unsigned [L+1];
 			if (L <= s) {
-			for (unsigned i=1;i<=L;i++) V[i] = m[i] << (32-i); 
+				for (unsigned i=1;i<=L;i++) V[i] = m[i] << (32-i); 
 			}
 			else {
-			for (unsigned i=1;i<=s;i++) V[i] = m[i] << (32-i); 
-			for (unsigned i=s+1;i<=L;i++) {
-			V[i] = V[i-s] ^ (V[i-s] >> s); 
-			for (unsigned k=1;k<=s-1;k++) 
-			V[i] ^= (((a >> (s-1-k)) & 1) * V[i-k]); 
-			}
+				for (unsigned i=1;i<=s;i++) V[i] = m[i] << (32-i); 
+				for (unsigned i=s+1;i<=L;i++) {
+					V[i] = V[i-s] ^ (V[i-s] >> s); 
+					for (unsigned k=1;k<=s-1;k++) 
+						V[i] ^= (((a >> (s-1-k)) & 1) * V[i-k]); 
+				}
 			}
 			
 			// Evalulate X[0] to X[N-1], scaled by pow(2,32)
 			unsigned *X = new unsigned [N];
 			X[0] = 0;
 			for (unsigned i=1;i<=N-1;i++) {
-			X[i] = X[i-1] ^ V[C[i-1]];
-			POINTS[i][j] = (double)X[i]/pow(2.0,32); // *** the actual points
-			//        ^ j for dimension (j+1)
-		}
+				X[i] = X[i-1] ^ V[C[i-1]];
+				//POINTS[i][j] = (double)X[i]/pow(2.0,32); // *** the actual points
+				POINTS[i][j] = X[i]; // *** the actual points
+				//        ^ j for dimension (j+1)
+			}
 			
 			// Clean up
 			delete [] m;
@@ -171,50 +179,18 @@ public:
 		}
 		delete [] C;
 		
+		//const unsigned depth = ceil(log2(arg_points));
+		const unsigned smax = ldexp(1., L);
+		const unsigned two_power_32 = ldexp(1., 32);
+		const double factor = ldexp(1., (isIntegerType<T>() ? static_cast<int>(L) : 0) - 32);
+		for(uint d=0; d<D; d++){
+			arg_pts.domain.pMin.pos()[d] = 0;
+			arg_pts.domain.pMax.pos()[d] = isIntegerType<T>() ? smax : 1.;
+		}
 		
-		if(isIntegerType<T>())
-		{
-			int smax = ceil(log2(arg_points));
-			smax = pow(2, smax);
-			
-			for(uint d=0; d<D; d++){
-				arg_pts.domain.pMin.pos()[d] = 0;
-				arg_pts.domain.pMax.pos()[d] = smax;
-			}
-			
-			for(uint i=0; i<arg_points; i++)
-			{
-				for(uint d=0; d<D; d++)
-				{
-					double p = POINTS[i][d];
-					if (p > 1)
-						p -= 1;
-					arg_pts[i].pos()[d] = p*smax;
-				}
-			}
-		}
-		else if (isFloatingType<T>())
-		{
-			for(uint d=0; d<D; d++){
-				arg_pts.domain.pMin.pos()[d] = 0;
-				arg_pts.domain.pMax.pos()[d] = 1;
-			}
-			
-			for(uint i=0; i<arg_points; i++)
-			{
-				for(uint d=0; d<D; d++)
-				{
-					arg_pts[i].pos()[d] = POINTS[i][d];
-					if (arg_pts[i].pos()[d] > 1)
-						arg_pts[i].pos()[d] -= 1;
-				}
-			}
-		}
-		else
-		{
-			ERROR("SamplerSobol::generateSamples The samples corrdinates must be of numeric value");
-			return false;
-		}
+		for(uint i=0; i<arg_points; i++)
+			for(uint d=0; d<D; d++)
+				arg_pts[i].pos()[d] = (POINTS[i][d] % two_power_32) * factor;
 
 		delete [] POINTS;
 		
