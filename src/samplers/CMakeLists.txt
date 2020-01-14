@@ -14,6 +14,7 @@ SET(SRCs
   Sobol_4dd
   Sobol_4di
   Sobol_10dd
+  Sobol_60di
 
   SobolIndices_2dd
   SobolIndices_2di
@@ -74,6 +75,7 @@ SET(SRCs
   Owen_4dd
   Owen_6dd
   Owen_8dd
+  Owen_60dd
 
   Rank1_2dd
 
@@ -177,6 +179,7 @@ SET(SRCs_test
   Owen_4dd
   Owen_6dd
   Owen_8dd
+  Owen_60dd
 
   Rank1_2dd
 

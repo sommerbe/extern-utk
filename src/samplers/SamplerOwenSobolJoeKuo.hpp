@@ -31,12 +31,15 @@
 #define _UTK_SAMPLER_OWENSOBOL_
 
 #include "../pointsets/Pointset.hpp"
-#include "SamplerSobolIndices.hpp"
+#include "SamplerSobol.hpp"
 #include <cstdlib>
 #include <random>
 #include <chrono>
 
 #include "../utils.hpp"
+
+//WIP generate static structure
+#define PATH "/Users/davidcoeurjolly/Projects/utk/data/sobol/new-joe-kuo-6.21201"
 
 namespace utk
 {
@@ -63,7 +66,8 @@ public:
 		std::vector<uint> permutation_tree[D];
 		
 		Pointset<D, unsigned int, Point<D, unsigned int> > arg_pts_int;
-    SamplerSobolIndices sobol;
+		SamplerSobol sobol;
+    sobol.setFilenameDirectionNumbers(PATH);
 		sobol.generateSamples< D, unsigned int, Point<D, unsigned int> >(arg_pts_int, arg_points);
 		
 		uint tree_size = (1 << (uint)(ceil( log2(arg_points) ))) - 1;
